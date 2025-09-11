@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 type TabKey = "home" | "chat" | "music" | "profile";
 
@@ -12,6 +12,7 @@ type Props = {
 
 export default function BottomNav({ active }: Props) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const go = (path: string) => {
     router.replace(path);
@@ -34,7 +35,7 @@ export default function BottomNav({ active }: Props) {
         );
       case "music":
         return (
-          <Ionicons name={isActive ? "musical-notes" : "musical-notes-outline"} size={24} color={color} />
+          <Ionicons name={isActive ? "analytics" : "analytics-outline"} size={24} color={color} />
         );
       case "profile":
         return <Ionicons name={isActive ? "person" : "person-outline"} size={24} color={color} />;
@@ -42,7 +43,7 @@ export default function BottomNav({ active }: Props) {
   };
 
   return (
-    <SafeAreaView edges={["bottom", "left", "right"]} style={styles.safeArea}>
+    <View style={[styles.safeArea, { paddingBottom: insets.bottom }]}>
       <View style={styles.container}>
         <TouchableOpacity onPress={() => go("/")} style={styles.item}>
           {getIcon("home")}
@@ -60,19 +61,24 @@ export default function BottomNav({ active }: Props) {
           <Ionicons name="lock-closed-outline" size={24} color={active === "profile" ? "#374151" : "#6B7280"} />
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: "#fff",
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    borderTopWidth: 1,
+    borderColor: "#e5e7eb",
   },
   container: {
     flexDirection: "row",
     justifyContent: "space-around",
-    borderTopWidth: 1,
-    borderColor: "#e5e7eb",
     paddingVertical: 10,
     backgroundColor: "#fff",
   },

@@ -1,330 +1,328 @@
-import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import {
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import BottomNav from "../components/BottomNav";
-import { getMe, updateMe, clearToken } from "../lib/api";
+import { StyleSheet, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, View, ScrollView, Platform } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import BottomNav from "../components/BottomNav";
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const [editMode, setEditMode] = useState(false);
-  const [name, setName] = useState("Cinzel Patel");
-  const [age, setAge] = useState("22");
-  const [avatarUrl, setAvatarUrl] = useState("https://i.pravatar.cc/150?img=12");
-  const [stressLevel, setStressLevel] = useState("Low");
-  const [sleepQuality, setSleepQuality] = useState("Good");
-  const [moodToday, setMoodToday] = useState("Happy");
-  const [email, setEmail] = useState("");
+  const insets = useSafeAreaInsets();
+  const [form, setForm] = useState({
+    userName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    appPassword: "",
+  });
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
+
+  const API_URL = Platform.OS === "android" ? "http://10.0.2.2:5281" : "http://localhost:5281";
+  const api = axios.create({
+    baseURL: API_URL,
+    headers: { "Content-Type": "application/json" },
+  });
+
+  const withAuth = async () => {
+    const token = await AsyncStorage.getItem("token");
+    return { Authorization: `Bearer ${token}` };
+  };
+
+  const loadProfile = async () => {
+    try {
+      setInitializing(true);
+      const headers = await withAuth();
+      const res = await api.get("/api/User", { headers });
+      setForm((f) => ({
+        ...f,
+        userName: res.data?.userName || "",
+        email: res.data?.email || "",
+      }));
+    } catch (e: any) {
+      console.error(e);
+      Alert.alert("Error", e.response?.data || "Failed to load profile");
+    } finally {
+      setInitializing(false);
+    }
+  };
 
   useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        const me = await getMe();
-        setName(me.userName || "");
-        setEmail(me.email || "");
-      } catch (e: any) {
-        // If unauthorized, redirect to login
-        router.replace("/login");
-      } finally {
-        setLoading(false);
-      }
-    })();
+    loadProfile();
   }, []);
 
-  const handleSave = async () => {
+  const updateProfile = async () => {
+    if (form.password && form.password !== form.confirmPassword) {
+      return Alert.alert("Error", "Passwords do not match");
+    }
     try {
       setLoading(true);
-      await updateMe({
-        userName: name,
-        email,
-        password: "", // no password change from here
-        confirmPassword: "",
-        appPassword: "",
-      });
-      setEditMode(false);
-      alert("Profile updated");
+      const headers = await withAuth();
+      const payload: any = {
+        userName: form.userName,
+        email: form.email,
+      };
+      if (form.password) payload.password = form.password;
+      if (form.confirmPassword) payload.confirmPassword = form.confirmPassword;
+      if (form.appPassword) payload.appPassword = form.appPassword;
+
+      await api.put("/api/User", payload, { headers });
+      Alert.alert("Success", "Profile updated");
+      setForm((f) => ({ ...f, password: "", confirmPassword: "" }));
     } catch (e: any) {
-      const msg = e?.response?.data || e?.message || "Update failed";
-      alert(typeof msg === "string" ? msg : JSON.stringify(msg));
+      console.error(e);
+      Alert.alert("Error", e.response?.data || "Update failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = async () => {
-    await clearToken();
-    router.replace("/login");
+  const deleteAccount = async () => {
+    Alert.alert("Confirm", "Delete your account? This cannot be undone.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            setLoading(true);
+            const headers = await withAuth();
+            const res = await api.delete("/api/User", { headers });
+            if (res.status === 204 || res.status === 200) {
+              await AsyncStorage.removeItem("token");
+              router.replace("/login");
+            } else {
+              Alert.alert("Error", `Unexpected status: ${res.status}`);
+            }
+          } catch (e: any) {
+            console.error("Delete account error:", e?.response?.status, e?.response?.data || e?.message);
+            Alert.alert("Error", e?.response?.data || e?.message || "Delete failed");
+          } finally {
+            setLoading(false);
+          }
+        },
+      },
+    ]);
   };
 
-  return (
-    <ScrollView style={styles.container}>
-      <SafeAreaView edges={["top", "left", "right"]}>
-      <View style={styles.headerContainer}>
-        <View style={styles.headerTop}>
-          <Text style={styles.headerText}>{loading ? "Loading..." : "Your Profile"}</Text>
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={() => {
-              if (editMode) handleSave();
-              else setEditMode(true);
-            }}
-          >
-            <Ionicons name={editMode ? "save" : "create-outline"} size={18} color="#fff" />
-            <Text style={styles.editButtonText}>{editMode ? "Save" : "Edit"}</Text>
-          </TouchableOpacity>
-        </View>
-        <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-        {editMode && (
-          <TextInput
-            value={avatarUrl}
-            onChangeText={setAvatarUrl}
-            style={styles.input}
-            placeholder="Avatar URL"
-            placeholderTextColor="#888"
-          />
-        )}
-        {editMode ? (
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            style={styles.nameInput}
-            placeholder="Your Name"
-            placeholderTextColor="#888"
-          />
-        ) : (
-          <Text style={styles.name}>{name}</Text>
-        )}
-        {editMode ? (
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            style={styles.nameInput}
-            placeholder="Email"
-            placeholderTextColor="#888"
-            keyboardType="email-address"
-          />
-        ) : (
-          <Text style={{ color: "#E5E7EB" }}>{email}</Text>
-        )}
-        <Text style={styles.tagline}>Mindful Warrior</Text>
-      </View>
+  if (initializing) {
+    return (
+      <SafeAreaView style={styles.centered}>
+        <ActivityIndicator size="large" color="#4b63c3" />
       </SafeAreaView>
+    );
+  }
 
-      <View style={styles.cardContainer}>
-        {editMode ? (
-          <>
-            <Text style={styles.cardLabel}>Age</Text>
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.pageWrapper}>
+        <ScrollView contentContainerStyle={[styles.scrollContentWithBar, { paddingBottom: 110 + insets.bottom }]} showsVerticalScrollIndicator={false}>
+          <View style={styles.header}>
+            <View style={styles.avatar}>
+              <Ionicons name="person" size={36} color="#4b63c3" />
+            </View>
+            <View>
+              <Text style={styles.title}>Profile</Text>
+              <Text style={styles.subtitle}>Manage your account details</Text>
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Account</Text>
+
+            <Text style={styles.label}>Username</Text>
             <TextInput
-              value={age}
-              onChangeText={setAge}
-              style={styles.cardInput}
-              placeholder="Your Age"
-              keyboardType="numeric"
-              placeholderTextColor="#999"
+              style={styles.input}
+              placeholder="Username"
+              value={form.userName}
+              onChangeText={(t) => setForm({ ...form, userName: t })}
             />
 
-            <Text style={styles.cardLabel}>Stress Level</Text>
+            <Text style={styles.label}>Email</Text>
             <TextInput
-              value={stressLevel}
-              onChangeText={setStressLevel}
-              style={styles.cardInput}
-              placeholder="Stress Level"
-              placeholderTextColor="#999"
+              style={styles.input}
+              placeholder="Email"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              value={form.email}
+              onChangeText={(t) => setForm({ ...form, email: t })}
             />
 
-            <Text style={styles.cardLabel}>Sleep Quality</Text>
+            <View style={styles.divider} />
+
+            <Text style={styles.sectionTitle}>Security</Text>
+            <Text style={styles.label}>New Password (optional)</Text>
             <TextInput
-              value={sleepQuality}
-              onChangeText={setSleepQuality}
-              style={styles.cardInput}
-              placeholder="Sleep Quality"
-              placeholderTextColor="#999"
+              style={styles.input}
+              placeholder="New Password"
+              secureTextEntry
+              value={form.password}
+              onChangeText={(t) => setForm({ ...form, password: t })}
             />
 
-            <Text style={styles.cardLabel}>Mood Today</Text>
+            <Text style={styles.label}>Confirm New Password</Text>
             <TextInput
-              value={moodToday}
-              onChangeText={setMoodToday}
-              style={styles.cardInput}
-              placeholder="Mood"
-              placeholderTextColor="#999"
+              style={styles.input}
+              placeholder="Confirm New Password"
+              secureTextEntry
+              value={form.confirmPassword}
+              onChangeText={(t) => setForm({ ...form, confirmPassword: t })}
             />
-          </>
-        ) : (
-          <>
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>👤 Age</Text>
-              <Text style={styles.cardValue}>{age}</Text>
-            </View>
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>🧘 Stress Level</Text>
-              <Text style={styles.cardValue}>{stressLevel}</Text>
-            </View>
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>🛌 Sleep Quality</Text>
-              <Text style={styles.cardValue}>{sleepQuality}</Text>
-            </View>
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>😊 Mood Today</Text>
-              <Text style={styles.cardValue}>{moodToday}</Text>
-            </View>
-          </>
-        )}
+
+            <Text style={styles.label}>App Password</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="App Password"
+              secureTextEntry
+              value={form.appPassword}
+              onChangeText={(t) => setForm({ ...form, appPassword: t })}
+            />
+
+            <TouchableOpacity style={styles.primaryBtn} onPress={updateProfile} disabled={loading}>
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Save Changes</Text>}
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Danger zone</Text>
+            <Text style={styles.helper}>Deleting your account is permanent.</Text>
+            <TouchableOpacity style={styles.dangerBtn} onPress={deleteAccount} disabled={loading}>
+              <Ionicons name="trash-outline" size={18} color="#fff" />
+              <Text style={styles.dangerText}>Delete Account</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+
+        <BottomNav active="profile" />
       </View>
-
-      <View style={styles.settingsSection}>
-        <TouchableOpacity style={styles.settingsButton} onPress={() => router.push("/locks") }>
-          <Ionicons name="settings-outline" size={20} color="#4b63c3" />
-          <Text style={styles.settingsText}>App Locks</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.settingsButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color="#4b63c3" />
-          <Text style={styles.settingsText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
-      <BottomNav active="profile" />
-    </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F7F8FA" },
-  headerContainer: {
-    backgroundColor: "#4b63c3",
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
+  container: {
+    flex: 1,
+    backgroundColor: "#F7F8FA",
+  },
+  pageWrapper: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 24,
+  },
+  scrollContentWithBar: {
+    padding: 16,
+    paddingBottom: 110,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
-    paddingTop: 40,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    backgroundColor: "#F7F8FA",
   },
-  headerTop: {
-    flexDirection: "row",
-    width: "100%",
-    justifyContent: "space-between",
-    marginBottom: 15,
-  },
-  headerText: {
-    fontSize: 18,
-    color: "#fff",
+  title: {
+    fontSize: 24,
     fontWeight: "800",
+    color: "#111827",
+    marginBottom: 16,
   },
-  editButton: {
-    backgroundColor: "#3f57a8",
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 20,
+  subtitle: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  header: {
     flexDirection: "row",
     alignItems: "center",
-  },
-  editButtonText: {
-    color: "#fff",
-    marginLeft: 6,
-    fontSize: 14,
+    marginBottom: 16,
+    gap: 12,
   },
   avatar: {
-    height: 100,
-    width: 100,
-    borderRadius: 50,
-    borderWidth: 2,
-    borderColor: "#fff",
-    marginBottom: 10,
-  },
-  name: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#fff",
-    marginBottom: 4,
-  },
-  nameInput: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-    width: "90%",
-    marginBottom: 6,
-    color: "#333",
-  },
-  tagline: {
-    fontSize: 13,
-    color: "#E5E7EB",
-    marginBottom: 10,
-  },
-  input: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-    width: "90%",
-    color: "#333",
-    marginBottom: 8,
-  },
-  cardContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#E6ECFF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
   },
   card: {
     backgroundColor: "#fff",
+    borderRadius: 14,
     padding: 16,
-    borderRadius: 12,
-    marginBottom: 15,
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-  },
-  cardTitle: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginBottom: 4,
-  },
-  cardValue: {
-    fontSize: 16,
-    color: "#333",
-    fontWeight: "700",
-  },
-  cardLabel: {
-    fontSize: 14,
-    color: "#374151",
-    marginBottom: 6,
-    marginTop: 10,
-  },
-  cardInput: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    color: "#333",
-    borderWidth: 1,
+    marginBottom: 16,
     borderColor: "#e5e7eb",
+    borderWidth: 1,
     shadowColor: "#000",
     shadowOpacity: 0.03,
     shadowRadius: 6,
   },
-  settingsSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 25,
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 10,
   },
-  settingsButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
+  label: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginBottom: 6,
+    marginTop: 6,
   },
-  settingsText: {
+  input: {
+    width: "100%",
+    backgroundColor: "#fff",
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    borderRadius: 10,
     fontSize: 16,
-    color: "#4b63c3",
-    fontWeight: "600",
-    marginLeft: 8,
+    marginBottom: 12,
+    borderColor: "#e5e7eb",
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#e5e7eb",
+    marginVertical: 12,
+  },
+  primaryBtn: {
+    backgroundColor: "#4b63c3",
+    paddingVertical: 13,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    width: "100%",
+    alignItems: "center",
+    marginTop: 10,
+  },
+  primaryText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  dangerBtn: {
+    backgroundColor: "#ef4444",
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    width: "100%",
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center",
+  },
+  dangerText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  helper: {
+    color: "#6B7280",
+    fontSize: 12,
+    marginBottom: 12,
   },
 });

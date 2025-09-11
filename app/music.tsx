@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
   FlatList,
@@ -9,79 +9,74 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import BottomNav from "../components/BottomNav";
-
-const meditations = [
-  {
-    id: "1",
-    title: "Soothing Rain Sounds",
-    duration: "10:00 Min",
-    color: "#FBE7E7",
-  },
-  {
-    id: "2",
-    title: "Morning Clarity Tones",
-    duration: "12:30 Min",
-    color: "#D7ECFB",
-  },
-  {
-    id: "3",
-    title: "Chakra Healing Vibes",
-    duration: "15:00 Min",
-    color: "#E5DDFB",
-  },
-  {
-    id: "4",
-    title: "Deep Sleep Music",
-    duration: "20:00 Min",
-    color: "#CFF8F9",
-  },
-  {
-    id: "5",
-    title: "Peaceful River Flow",
-    duration: "8:45 Min",
-    color: "#FDF6D9",
-  },
-  {
-    id: "6",
-    title: "Relaxing Flute Session",
-    duration: "9:30 Min",
-    color: "#E0F9E8",
-  },
-];
-
+import { AppBlockingService, type UsageItem } from "../nativeModules/AppBlockingService";
 const screenWidth = Dimensions.get("window").width;
 const cardWidth = (screenWidth - 60) / 2;
 
-export default function MeditateMusicScreen() {
+export default function AppUsageScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const [usage, setUsage] = useState<UsageItem[]>([]);
+  const [hasPermission, setHasPermission] = useState<boolean>(false);
+
+  useEffect(() => {
+    (async () => {
+      const granted = await AppBlockingService.hasUsageAccessPermission();
+      setHasPermission(granted);
+      if (!granted) return;
+      const data = await AppBlockingService.getUsageStats(7);
+      setUsage(data);
+    })();
+  }, []);
+
+  const totalTimeStr = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
-      <Text style={styles.header}>Meditation Music</Text>
+      <Text style={styles.header}>App Usage (last 7 days)</Text>
 
-      <FlatList
-        data={meditations}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        contentContainerStyle={{ padding: 20 }}
-        columnWrapperStyle={{ justifyContent: "space-between" }}
-        renderItem={({ item }) => (
+      {!hasPermission ? (
+        <View style={{ padding: 20 }}>
+          <Text style={{ fontSize: 16, color: "#374151", marginBottom: 10 }}>
+            To show app usage, enable Usage Access for MindEase.
+          </Text>
           <TouchableOpacity
-            style={[styles.card, { backgroundColor: item.color }]}
-            onPress={() => {
-              alert(`Play: ${item.title}`);
-            }}
+            onPress={() => AppBlockingService.openUsageAccessSettings()}
+            style={{ backgroundColor: "#4b63c3", padding: 12, borderRadius: 8, alignItems: "center" }}
           >
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text style={styles.duration}>{item.duration}</Text>
-            <View style={styles.playButton}>
-              <Ionicons name="play" size={16} color="#fff" />
-            </View>
+            <Text style={{ color: "#fff", fontWeight: "600" }}>Open Usage Access Settings</Text>
           </TouchableOpacity>
-        )}
-      />
+        </View>
+      ) : (
+        <FlatList
+          data={usage}
+          keyExtractor={(item) => item.packageName}
+          contentContainerStyle={{ 
+            paddingHorizontal: 20, 
+            paddingBottom: 100 + insets.bottom 
+          }}
+          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+          renderItem={({ item, index }) => (
+            <View style={[styles.card, { backgroundColor: index === 0 ? "#FBE7E7" : index === 1 ? "#D7ECFB" : "#E5DDFB" }]}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                <Text style={styles.cardTitle}>{item.appName}</Text>
+                <Text style={styles.duration}>{totalTimeStr(item.totalTimeForegroundMs)}</Text>
+              </View>
+              <View style={styles.playButton}>
+                <Ionicons name="time" size={16} color="#fff" />
+              </View>
+            </View>
+          )}
+        />
+      )}
 
       {/* Bottom Tab */}
       {/* <View style={styles.bottomTab}>
@@ -121,11 +116,9 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   card: {
-    width: cardWidth,
-    height: 140,
-    borderRadius: 20,
+    width: "100%",
+    borderRadius: 16,
     padding: 14,
-    marginBottom: 20,
     justifyContent: "space-between",
     shadowColor: "#000",
     shadowOpacity: 0.05,

@@ -10,10 +10,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import BottomNav from "../components/BottomNav";
 
 export default function ChatScreen() {
+  const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState([
     { id: "1", from: "ai", text: "Hey there! How can I support your mental wellness today?" },
   ]);
@@ -70,7 +71,7 @@ export default function ChatScreen() {
             </Text>
           </View>
         )}
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 100 + insets.bottom }}
         inverted
       />
 
