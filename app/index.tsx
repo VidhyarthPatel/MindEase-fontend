@@ -140,8 +140,8 @@ export default function HomeScreen() {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>🔔 Notifications</Text>
             <Text style={styles.modalText}>• Meditation reminder at 8:00 PM</Text>
-            <Text style={styles.modalText}>• New session "Stress Relief" added</Text>
-            <Text style={styles.modalText}>• Don’t forget to hydrate 💧</Text>
+            <Text style={styles.modalText}>• New session &ldquo;Stress Relief&rdquo; added</Text>
+            <Text style={styles.modalText}>• Don&apos;t forget to hydrate 💧</Text>
             <Pressable
               onPress={() => setShowNotification(false)}
               style={styles.modalCloseButton}
@@ -191,7 +191,7 @@ export default function HomeScreen() {
           ListHeaderComponent={() =>
             today?.recommendation ? (
               <View style={styles.recommendationBox}>
-                <Text style={styles.recommendationTitle}>Today's Recommendation:</Text>
+                <Text style={styles.recommendationTitle}>Today&apos;s Recommendation:</Text>
                 <Text style={styles.recommendationText}>{today.recommendation}</Text>
               </View>
             ) : null

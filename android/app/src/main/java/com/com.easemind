@@ -1,0 +1,45 @@
+package com.easemind
+
+import android.app.usage.UsageStats
+import android.app.usage.UsageStatsManager
+import android.content.Context
+import android.os.Build
+import com.facebook.react.bridge.*
+import java.util.*
+
+class UsageStatsModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
+    override fun getName(): String = "UsageStatsModule"
+
+    @ReactMethod
+    fun getScreenTimeToday(promise: Promise) {
+        try {
+            val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+            val now = System.currentTimeMillis()
+            val calendar = Calendar.getInstance()
+            calendar.timeInMillis = now
+            calendar.set(Calendar.HOUR_OF_DAY, 0)
+            calendar.set(Calendar.MINUTE, 0)
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
+            val start = calendar.timeInMillis
+
+            val stats: List<UsageStats> = usageStatsManager.queryUsageStats(
+                UsageStatsManager.INTERVAL_DAILY,
+                start,
+                now
+            ) ?: emptyList()
+
+            var totalMillis: Long = 0
+            for (stat in stats) {
+                totalMillis += if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    stat.totalTimeVisible
+                } else {
+                    stat.totalTimeInForeground
+                }
+            }
+            promise.resolve((totalMillis / 1000).toInt()) // return seconds
+        } catch (e: Exception) {
+            promise.reject("USAGE_STATS_ERROR", e)
+        }
+    }
+}

@@ -15,7 +15,7 @@ export default function BottomNav({ active }: Props) {
   const insets = useSafeAreaInsets();
 
   const go = (path: string) => {
-    router.replace(path);
+    router.replace(path as any);
   };
 
   const getIcon = (key: TabKey) => {

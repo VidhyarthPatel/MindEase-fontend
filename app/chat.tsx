@@ -40,57 +40,60 @@ export default function ChatScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerText}>Chat with AI</Text>
-        </View>
-
-      {/* Messages */}
-      <FlatList
-        data={[...messages].reverse()}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View
-            style={[
-              styles.messageBubble,
-              item.from === "user" ? styles.userBubble : styles.aiBubble,
-            ]}
-          >
-            <Text
-              style={{
-                color: item.from === "user" ? "#fff" : "#333",
-                fontSize: 15,
-              }}
-            >
-              {item.text}
-            </Text>
+    <View style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={0}
+      >
+        <SafeAreaView style={{ flex: 1, paddingBottom: 70 + insets.bottom }} edges={["top", "left", "right"]}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.headerText}>Chat with AI</Text>
           </View>
-        )}
-        contentContainerStyle={{ padding: 16, paddingBottom: 100 + insets.bottom }}
-        inverted
-      />
 
-        {/* Input */}
-        <View style={styles.inputArea}>
-          <TextInput
-            placeholder="Type your message..."
-            placeholderTextColor="#aaa"
-            style={styles.input}
-            value={input}
-            onChangeText={setInput}
+          {/* Messages */}
+          <FlatList
+            data={[...messages].reverse()}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View
+                style={[
+                  styles.messageBubble,
+                  item.from === "user" ? styles.userBubble : styles.aiBubble,
+                ]}
+              >
+                <Text
+                  style={{
+                    color: item.from === "user" ? "#fff" : "#333",
+                    fontSize: 15,
+                  }}
+                >
+                  {item.text}
+                </Text>
+              </View>
+            )}
+            contentContainerStyle={{ padding: 16, paddingBottom: 16 }}
+            inverted
           />
-          <TouchableOpacity onPress={sendMessage} style={styles.sendButton}>
-            <Ionicons name="send" size={18} color="#fff" />
-          </TouchableOpacity>
-        </View>
-        <BottomNav active="chat" />
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+
+          {/* Input */}
+          <View style={styles.inputArea}>
+            <TextInput
+              placeholder="Type your message..."
+              placeholderTextColor="#aaa"
+              style={styles.input}
+              value={input}
+              onChangeText={setInput}
+            />
+            <TouchableOpacity onPress={sendMessage} style={styles.sendButton}>
+              <Ionicons name="send" size={18} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
+      <BottomNav active="chat" />
+    </View>
   );
 }
 

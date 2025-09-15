@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, View, ScrollView, Platform } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import BottomNav from "../components/BottomNav";
 
 export default function ProfileScreen() {
@@ -20,9 +20,8 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
 
-  const API_URL = Platform.OS === "android" ? "http://10.0.2.2:5281" : "http://localhost:5281";
   const api = axios.create({
-    baseURL: API_URL,
+    baseURL: "https://mindeasebackendv2.onrender.com",
     headers: { "Content-Type": "application/json" },
   });
 

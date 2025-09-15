@@ -1,18 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../lib/api";
 import { AppBlockingService } from "../nativeModules/AppBlockingService";
 
@@ -96,7 +96,7 @@ export default function LoginScreen() {
   // 🔹 Initialize Android foreground service for screen time tracking
   const initScreenTimeService = async (token: string) => {
     try {
-      const baseUrl = api.defaults.baseURL || "http://localhost:5281";
+      const baseUrl = api.defaults.baseURL || "https://mindeasebackendv2.onrender.com";
 
       await AppBlockingService.setAuthToken(token);
       await AppBlockingService.setBaseUrl(baseUrl);

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">MindEase</string>
-    <string name="accessibility_service_description">MindEase App Blocker helps you control your social media usage by blocking access to selected apps during designated times.</string>
+    <string name="accessibility_service_description">MindEase uses accessibility services to help you manage your app usage by blocking distracting apps during scheduled times. This helps you maintain focus and improve your digital wellness.</string>
 </resources>
-

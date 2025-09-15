@@ -1,9 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dimensions,
   FlatList,
+  Linking,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -37,6 +39,21 @@ export default function AppUsageScreen() {
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     if (hours > 0) return `${hours}h ${minutes}m`;
     return `${minutes}m`;
+  };
+
+  // Check overlay permission (native module recommended for real check)
+  const checkOverlayPermission = async () => {
+    if (Platform.OS === "android") {
+      // You need a native module for a real check, but you can open settings like this:
+      await Linking.openSettings(); // Or use a native module to open overlay settings directly
+    }
+  };
+
+  // To open overlay settings:
+  const openOverlaySettings = () => {
+    if (Platform.OS === "android") {
+      Linking.openURL("package:com.yourpackagename"); // Or use a native module for ACTION_MANAGE_OVERLAY_PERMISSION
+    }
   };
 
   return (
